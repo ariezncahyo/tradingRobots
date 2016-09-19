@@ -208,8 +208,6 @@ if(!IsLossLimitBreached(IsLossLimitActivated,LossLimitPercent,OnJournaling,0)){
          _level = NormalizeDouble((_BuyPrice - _BuyStopLoss) / (P*Point),Digits);
          _BuyStopLoss = _level;
          _BuyTakeProfit = _level * ProfitFactor;
-         Print("Level:"+_level);
-         Print("_BuyStopLoss:"+_BuyStopLoss);
           
          OrderNumber=OpenPositionPending(OP_BUYSTOP,_BuyPrice,_ExpirationDate,GetLot(IsSizingOn,Lots,Risk,YenPairAdjustFactor,_BuyStopLoss,P),_BuyStopLoss,_BuyTakeProfit,MagicNumber,Slippage,OnJournaling,P,IsECNbroker,MaxRetriesPerTick,RetryInterval);
       }
@@ -315,15 +313,6 @@ bool IsBuySignal(){
       
       _Condition_isBodyBigEnough = _Candle_BodySize >= BodyMinimalSize;
    
-   /*
-      Print("_Condition_isCloseLowerThanPrevious"+_Condition_isCloseLowerThanPrevious);
-      Print("_Condition_hasHigherHighAndLowerLow"+_Condition_hasHigherHighAndLowerLow);
-      Print("_Condition_isWeakLowAcceptable"+_Condition_isWeakLowAcceptable);
-      Print("_Condition_isCandleBodyLargerThanPrevious"+_Condition_isCandleBodyLargerThanPrevious);
-      Print("_Condition_hasSpaceToTheLeft"+_Condition_hasSpaceToTheLeft);
-      Print("_Condition_isFirstCandleBullish"+_Condition_isFirstCandleBullish);
-      Print("_Condition_isSecondCandleBearish"+_Condition_isSecondCandleBearish);
-     */ 
       return _Condition_isCloseLowerThanPrevious &&
              _Condition_hasHigherHighAndLowerLow &&
              _Condition_isWeakLowAcceptable &&
@@ -375,14 +364,6 @@ bool IsSellSignal(){
       _Condition_isSecondCandleBullish = IsBullishCandle(_Bars_Open[1],_Bars_Close[1]);
       
       _Condition_isBodyBigEnough = _Candle_BodySize >= BodyMinimalSize;
-      
-      Print("_Condition_isCloseLowerThanPrevious"+_Condition_isCloseLowerThanPrevious);
-      Print("_Condition_hasHigherHighAndLowerLow"+_Condition_hasHigherHighAndLowerLow);
-      Print("_Condition_isWeakLowAcceptable"+_Condition_isWeakLowAcceptable);
-      Print("_Condition_isCandleBodyLargerThanPrevious"+_Condition_isCandleBodyLargerThanPrevious);
-      Print("_Condition_hasSpaceToTheLeft"+_Condition_hasSpaceToTheLeft);
-      Print("_Condition_isFirstCandleBullish"+_Condition_isFirstCandleBullish);
-      Print("_Condition_isSecondCandleBearish"+_Condition_isSecondCandleBearish);
       
       return _Condition_isCloseLowerThanPrevious &&
              _Condition_hasHigherHighAndLowerLow &&
