@@ -79,7 +79,7 @@ extern bool    IsLossLimitActivated=True;
 extern double  LossLimitPercent=50;
 
 extern string  Header15="----------EA General Settings-----------";
-extern int     MagicNumber=12345;
+extern int     MagicNumber=10001;
 extern int     Slippage=3; // In Pips
 extern bool    IsECNbroker = false; // Is your broker an ECN
 extern bool    OnJournaling = true; // Add EA updates in the Journal Tab
