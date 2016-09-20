@@ -37,9 +37,11 @@ STOP/TRAILING/RISK/TIMEFRAME:
 //+------------------------------------------------------------------+
 extern string  Header1="----------Trading Rules Variables-----------";
 extern int     ExpirationDateInHours=72;
-extern int     ProfitFactor=1;
+extern double  ProfitFactor=1;
 extern int     Interval=50;
 extern double  CandleMinimalSize=500;
+extern double  SpaceToLeftMinimalDistance=0.25;
+extern double  CandleWeakMinimal = 60;
 
 
 extern string  Header2="----------Position Sizing Settings-----------";
@@ -207,7 +209,7 @@ if(!IsLossLimitBreached(IsLossLimitActivated,LossLimitPercent,OnJournaling,0)){
          _BuyTakeProfit=NormalizeDouble(_BuyPrice + ((_BuyPrice - _BuyStopLoss)*ProfitFactor),Digits);
          
          _level = NormalizeDouble((_BuyPrice - _BuyStopLoss) / (P*Point),Digits);
-         _BuyStopLoss = _level;
+         _BuyStopLoss = _level * ProfitFactor;
          _BuyTakeProfit = _level * ProfitFactor;
           
          OrderNumber=OpenPositionPending(OP_BUYSTOP,_BuyPrice,_ExpirationDate,GetLot(IsSizingOn,Lots,Risk,YenPairAdjustFactor,_BuyStopLoss,P),_BuyStopLoss,_BuyTakeProfit,MagicNumber,Slippage,OnJournaling,P,IsECNbroker,MaxRetriesPerTick,RetryInterval);
@@ -218,7 +220,7 @@ if(!IsLossLimitBreached(IsLossLimitActivated,LossLimitPercent,OnJournaling,0)){
          _SellTakeProfit=NormalizeDouble((_SellPrice -((_SellStopLoss - _SellPrice) * ProfitFactor)),Digits);
 
          _level = NormalizeDouble((_SellStopLoss - _SellPrice) /(P*Point),Digits);
-         _SellStopLoss = _level;
+         _SellStopLoss = _level * ProfitFactor;
          _SellTakeProfit = _level * ProfitFactor;
          
          OrderNumber=OpenPositionPending(OP_SELLSTOP,_SellPrice,_ExpirationDate,GetLot(IsSizingOn,Lots,Risk,YenPairAdjustFactor,_SellStopLoss,P),_SellStopLoss,_SellTakeProfit,MagicNumber,Slippage,OnJournaling,P,IsECNbroker,MaxRetriesPerTick,RetryInterval);
@@ -276,9 +278,9 @@ Content:
 
 */
 bool IsBuySignal(){
-  if(_Candle_WeakLow >= 60){
-     //# BUY RULE 01 : weak high should represent more than 60% of total size of candle
-      _Condition_isWeakAcceptable = _Candle_WeakLow >= 60;
+  if(_Candle_WeakLow >= CandleWeakMinimal){
+     //# BUY RULE 01 : weak high should represent more than CandleWeakMinimal% of total size of candle
+      _Condition_isWeakAcceptable = _Candle_WeakLow >= CandleWeakMinimal;
       
       //# BUY RULE 02 : the body should be within the previous candle
       _Condition_isCloseWithinPreviousCandle = (_Bars_Close[0] >= _Bars_Low[1] && _Bars_Close[0] <= _Bars_High[1]) //closing inside previous bar
@@ -288,19 +290,29 @@ bool IsBuySignal(){
       _Condition_isCandleLargerThanPrevious = _Candle_TotalSize >= GetCandleEntireSize(_Bars_High[1],_Bars_Low[1]);
       
       //# BUY RULE 04 : space to left
-      double maximumAllowedPrice = _Bars_Low[0] + (0.3 * _Candle_TotalSizePrice);
+      double maximumAllowedPrice = _Bars_Low[0] + (SpaceToLeftMinimalDistance * _Candle_TotalSizePrice);
       
       _Condition_hasSpaceToTheLeft = true;
-      for(int j=2; j<5; j++){
+      for(int j=1; j<5; j++){
          if(_Bars_Open[j] < maximumAllowedPrice || _Bars_Close[j] < maximumAllowedPrice || _Bars_High[j] < maximumAllowedPrice || _Bars_Low[j] < maximumAllowedPrice){
             _Condition_hasSpaceToTheLeft = false;
             break;
          }
       }
       
+       if(_Condition_hasSpaceToTheLeft){
+         maximumAllowedPrice = _Bars_High[0] - (0.15 * _Candle_TotalSizePrice);
+         for(int k=5; k<8; k++){
+            if(_Bars_Open[k] < maximumAllowedPrice || _Bars_Close[k] < maximumAllowedPrice || _Bars_High[k] < maximumAllowedPrice || _Bars_Low[k] < maximumAllowedPrice){
+               _Condition_hasSpaceToTheLeft = false;
+               break;
+            }
+         }
+      }
+      
       _Condition_isCandleBigEnough = _Candle_TotalSize >= CandleMinimalSize;
       
-        
+       /*
       Print("_Candle_WeakLow:"+_Candle_WeakLow);
       Print("maximumAllowedPrice: "+maximumAllowedPrice);
       Print("_Condition_isWeakAcceptable:"+_Condition_isWeakAcceptable);
@@ -309,7 +321,7 @@ bool IsBuySignal(){
       Print("_Condition_hasSpaceToTheLeft:"+_Condition_hasSpaceToTheLeft);
       Print("_Condition_isCandleBigEnough:"+_Condition_isCandleBigEnough);
       
-      
+      */
       return _Condition_isWeakAcceptable &&
              _Condition_isCloseWithinPreviousCandle &&
              _Condition_isCandleLargerThanPrevious &&
@@ -322,27 +334,48 @@ bool IsBuySignal(){
 }
 
 bool IsSellSignal(){
-   if(_Candle_WeakHigh >= 60){
+   if(_Candle_WeakHigh >= CandleWeakMinimal){
       //# SELL RULE 01 : weak high should represent more than 60% of total size of candle
-      _Condition_isWeakAcceptable = _Candle_WeakHigh >= 60;
+      _Condition_isWeakAcceptable = _Candle_WeakHigh >= CandleWeakMinimal;
       
       //# SELL RULE 02 : the body should be within the previous candle
       _Condition_isCloseWithinPreviousCandle = (_Bars_Close[0] >= _Bars_Low[1] && _Bars_Close[0] <= _Bars_High[1]) //closing inside previous bar
-                                               && (_Bars_Open[0] >= _Bars_Low[1] && _Bars_Open[0] <= _Bars_High[1]); //Opening inside previous bar
+                                               || (_Bars_Open[0] >= _Bars_Low[1] && _Bars_Open[0] <= _Bars_High[1]); //Opening inside previous bar
       
       //# SELL RULE 03 : _Condition_isCandleLargerThanPrevious
       _Condition_isCandleLargerThanPrevious = _Candle_TotalSize >= GetCandleEntireSize(_Bars_High[1],_Bars_Low[1]);
       
       //# SELL RULE 04 : space to left
-      double maximumAllowedPrice = _Bars_High[0] - (0.3 * _Candle_TotalSizePrice);
+      double maximumAllowedPrice = _Bars_High[0] - (SpaceToLeftMinimalDistance * _Candle_TotalSizePrice);
       
       _Condition_hasSpaceToTheLeft = true;
-      for(int j=2; j<5; j++){
+      for(int j=1; j<5; j++){
          if(_Bars_Open[j] > maximumAllowedPrice || _Bars_Close[j] > maximumAllowedPrice || _Bars_High[j] > maximumAllowedPrice){
             _Condition_hasSpaceToTheLeft = false;
             break;
          }
       }
+      
+      if(_Condition_hasSpaceToTheLeft){
+         maximumAllowedPrice = _Bars_High[0] - (0.15 * _Candle_TotalSizePrice);
+         for(int k=5; k<8; k++){
+            if(_Bars_Open[k] > maximumAllowedPrice || _Bars_Close[k] > maximumAllowedPrice || _Bars_High[k] > maximumAllowedPrice){
+               _Condition_hasSpaceToTheLeft = false;
+               break;
+            }
+         }
+      }
+      
+        /*
+      //Print("_Candle_WeakLow:"+);
+      Print("maximumAllowedPrice: "+maximumAllowedPrice);
+      Print("_Condition_isWeakAcceptable:"+_Condition_isWeakAcceptable);
+      Print("_Condition_isCloseWithinPreviousCandle:"+_Condition_isCloseWithinPreviousCandle);
+      Print("_Condition_isCandleLargerThanPrevious:"+_Condition_isCandleLargerThanPrevious);
+      Print("_Condition_hasSpaceToTheLeft:"+_Condition_hasSpaceToTheLeft);
+      Print("_Condition_isCandleBigEnough:"+_Condition_isCandleBigEnough);
+      
+      */
       
       _Condition_isCandleBigEnough = _Candle_TotalSize >= CandleMinimalSize;
     
